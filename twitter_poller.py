@@ -67,7 +67,7 @@ def monitor_command( bot, trigger ):
 			bot.reply( u"Now monitoring {0}.".format( hashtag ) )
 			poll_hashtags( bot )
 
-@willie.module.interval( 10 )
+@willie.module.interval( 60 )
 def poll_hashtags( bot ):
 	session = create_oauth_session( bot )
 	twitter_data = bot.memory["twitter_data"]
@@ -91,8 +91,6 @@ def poll_hashtags( bot ):
 			highest_id = max( highest_id, int( status["id"] ) )
 
 		options["last_id"] = highest_id
-
-		print( "New highest ID: " + str( highest_id ) )
 
 		for channel in options["channels"]:
 			for status in items[0:5]:
@@ -160,7 +158,6 @@ def unmonitor_command( bot, trigger ):
 				if len( hashtag_data["channels"] ) < 1:
 					del data[hashtag]
 
-				print( data )
 				save_data( bot )
 				bot.reply( u"Stopped monitoring {0}.".format( hashtag ) )
 
