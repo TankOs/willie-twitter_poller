@@ -84,6 +84,13 @@ def poll_hashtags( bot ):
 		data = session.get( "search/tweets.json", params = params ).json()
 		items = data["statuses"]
 
+		# Filter out retweets.
+		items = [
+			item
+			for item in items
+			if item["text"].startswith( "RT @" ) is False
+		]
+
 		highest_id = options["last_id"] or 0
 
 		# Find highest ID of *all* tweets.
@@ -93,18 +100,24 @@ def poll_hashtags( bot ):
 		options["last_id"] = highest_id
 
 		for channel in options["channels"]:
+			tweet_number = 1
+
 			for status in items[0:5]:
 				banner = u"\x02\x032[TWITTER]\x030\x02"
 				user = u"@{0}".format( status["user"]["screen_name"] )
 				text = status["text"]
-				irc_text = u"{2} \x032{3} \x033{0}\x030: {1}".format(
+				irc_text = u"{2} \x032{3} \x033{0}\x030: {1} [{4}/{5}]".format(
 					user,
 					text,
 					banner,
 					hashtag,
+					tweet_number,
+					len( items ),
 				)
 
 				bot.msg( channel, irc_text )
+
+				tweet_number += 1
 
 			if len( items ) > 5:
 				bot.msg( channel, u"(showing a maximum of 5 tweets)" )
