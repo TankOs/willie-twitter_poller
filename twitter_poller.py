@@ -88,7 +88,7 @@ def poll_hashtags( bot ):
 		items = [
 			item
 			for item in items
-			if item["text"].startswith( "RT @" ) is False
+			if item["text"].startswith( "RT" ) is False
 		]
 
 		highest_id = options["last_id"] or 0
