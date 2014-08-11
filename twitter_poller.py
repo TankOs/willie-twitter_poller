@@ -2,6 +2,13 @@ import willie
 import rauth
 import json
 import os
+import pprint
+
+def create_hashtag_dict():
+	return {
+		"channels": [],
+		"last_id": None,
+	}
 
 def setup( bot ):
 	bot.twitter_db_filename = os.path.join(
@@ -9,23 +16,20 @@ def setup( bot ):
 		bot.nick + "-twitter.db",
 	)
 
-	bot.memory["twitter_data"] = {}
+	bot.memory["twitter_data"] = {
+		"ignored_users": [],
+		"hashtags": {},
+	}
 
 	if os.path.exists( bot.twitter_db_filename ):
 		fh = open( bot.twitter_db_filename, "r" )
-		bot.memory["twitter_data"] = json.load( fh )
+		bot.memory["twitter_data"].update( json.load( fh ) )
 		fh.close()
 
 def save_data( bot ):
 	fh = open( bot.twitter_db_filename, "w" )
 	fh.write( json.dumps( bot.memory["twitter_data"] ) )
 	fh.close()
-
-def create_options_dict():
-	return {
-		"channels": [],
-		"last_id": None,
-	}
 
 def create_oauth_session( bot ):
 	service = rauth.OAuth1Service(
@@ -55,13 +59,12 @@ def monitor_command( bot, trigger ):
 		else:
 			data = bot.memory["twitter_data"]
 
-			options = data.get( hashtag ) or create_options_dict()
+			options = data["hashtags"].get( hashtag ) or create_hashtag_dict()
 
 			if trigger.sender not in options["channels"]:
 				options["channels"].append( trigger.sender )
 
-			data[hashtag] = options
-
+			data["hashtags"][hashtag] = options
 			save_data( bot )
 
 			bot.reply( u"Now monitoring {0}.".format( hashtag ) )
@@ -72,7 +75,7 @@ def poll_hashtags( bot ):
 	session = create_oauth_session( bot )
 	twitter_data = bot.memory["twitter_data"]
 
-	for hashtag, options in twitter_data.items():
+	for hashtag, options in twitter_data["hashtags"].items():
 		params = {
 			"q": hashtag,
 			"result_type": "recent",
@@ -88,7 +91,14 @@ def poll_hashtags( bot ):
 		items = [
 			item
 			for item in items
-			if item["text"].startswith( "RT" ) is False
+			if(
+				item["text"].startswith( "RT" ) is False and (
+					"ignored_users" not in twitter_data or (
+						item["user"]["screen_name"].lower() not in
+						twitter_data["ignored_users"]
+					)
+				)
+			)
 		]
 
 		highest_id = options["last_id"] or 0
@@ -138,7 +148,7 @@ def list_command( bot, trigger ):
 	if channel[0] == "#":
 		hashtags = []
 
-		for hashtag, options in data.items():
+		for hashtag, options in data["hashtags"].items():
 			if channel in options["channels"]:
 				hashtags.append( hashtag )
 
@@ -161,7 +171,7 @@ def unmonitor_command( bot, trigger ):
 		if len( hashtag ) < 2 or hashtag[0] != u"#":
 			bot.reply( u"Invalid hashtag: {0}".format( hashtag ) )
 		else:
-			hashtag_data = data[hashtag] if hashtag in data else None
+			hashtag_data = data["hashtags"].get( hashtag )
 
 			if hashtag_data is None or channel not in hashtag_data["channels"]:
 				bot.reply( u"{0} is not monitored.".format( hashtag ) )
@@ -169,8 +179,47 @@ def unmonitor_command( bot, trigger ):
 				hashtag_data["channels"].remove( channel )
 
 				if len( hashtag_data["channels"] ) < 1:
-					del data[hashtag]
+					del data["hashtags"][hashtag]
 
 				save_data( bot )
 				bot.reply( u"Stopped monitoring {0}.".format( hashtag ) )
 
+@willie.module.commands( "twitter:ignore" )
+def ignore_command( bot, trigger ):
+	data = bot.memory["twitter_data"]
+
+	if "ignored_users" not in data:
+		data["ignored_users"] = []
+
+	if trigger.admin is True:
+		user = trigger.group( 3 ).lower()
+
+		if user not in data["ignored_users"]:
+			data["ignored_users"].append( user )
+
+		bot.reply( u"Added {0} to ignore list.".format( trigger.group( 3 ) ) )
+
+	save_data( bot )
+
+@willie.module.commands( "twitter:unignore" )
+def unignore_command( bot, trigger ):
+	data = bot.memory["twitter_data"]
+
+	if "ignored_users" in data and trigger.admin is True:
+		user = trigger.group( 3 ).lower()
+
+		if user in data["ignored_users"]:
+			data["ignored_users"].remove( user )
+
+		bot.reply( u"Removed {0} from ignore list.".format( trigger.group( 3 ) ) )
+
+	save_data( bot )
+
+@willie.module.commands( "twitter:ignorelist" )
+def ignorelist_command( bot, trigger ):
+	data = bot.memory["twitter_data"]
+
+	if trigger.admin is True:
+		bot.reply(
+			u"Ignored users: {0}".format( u", ".join( data["ignored_users"] ) )
+		)
