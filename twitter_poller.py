@@ -116,7 +116,7 @@ def poll_hashtags( bot ):
 				banner = u"\x02\x032[TWITTER]\x030\x02"
 				user = u"@{0}".format( status["user"]["screen_name"] )
 				text = status["text"]
-				irc_text = u"{2} \x032{3} \x033{0}\x030: {1} [{4}/{5}]".format(
+				irc_text = u"{2} \x032{3} \x033{0}\x03: {1} [{4}/{5}]".format(
 					user,
 					text,
 					banner,
