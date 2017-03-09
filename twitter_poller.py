@@ -1,4 +1,4 @@
-import willie
+import sopel
 import rauth
 import json
 import os
@@ -12,7 +12,7 @@ def create_hashtag_dict():
 
 def setup( bot ):
 	bot.twitter_db_filename = os.path.join(
-		bot.config.dotdir,
+		bot.config.homedir,
 		bot.nick + "-twitter.db",
 	)
 
@@ -46,7 +46,7 @@ def create_oauth_session( bot ):
 	)
 	return session
 
-@willie.module.commands( "twitter:monitor" )
+@sopel.module.commands( "twitter:monitor" )
 def monitor_command( bot, trigger ):
 	if(
 		trigger.admin is True and
@@ -70,7 +70,7 @@ def monitor_command( bot, trigger ):
 			bot.reply( u"Now monitoring {0}.".format( hashtag ) )
 			poll_hashtags( bot )
 
-@willie.module.interval( 60 )
+@sopel.module.interval( 60 )
 def poll_hashtags( bot ):
 	session = create_oauth_session( bot )
 	twitter_data = bot.memory["twitter_data"]
@@ -134,13 +134,13 @@ def poll_hashtags( bot ):
 
 	save_data( bot )
 
-@willie.module.commands( "twitter:sync" )
+@sopel.module.commands( "twitter:sync" )
 def poll_now( bot, trigger ):
 	if trigger.admin is True:
 		bot.reply( u"Synchronizing now..." )
 		poll_hashtags( bot )
 
-@willie.module.commands( "twitter:list" )
+@sopel.module.commands( "twitter:list" )
 def list_command( bot, trigger ):
 	channel = trigger.sender
 	data = bot.memory["twitter_data"]
@@ -157,7 +157,7 @@ def list_command( bot, trigger ):
 		else:
 			bot.reply( u"Monitoring: {0}".format( u", ".join( hashtags ) ) )
 
-@willie.module.commands( "twitter:unmonitor" )
+@sopel.module.commands( "twitter:unmonitor" )
 def unmonitor_command( bot, trigger ):
 	channel = trigger.sender
 	data = bot.memory["twitter_data"]
@@ -184,7 +184,7 @@ def unmonitor_command( bot, trigger ):
 				save_data( bot )
 				bot.reply( u"Stopped monitoring {0}.".format( hashtag ) )
 
-@willie.module.commands( "twitter:ignore" )
+@sopel.module.commands( "twitter:ignore" )
 def ignore_command( bot, trigger ):
 	data = bot.memory["twitter_data"]
 
@@ -201,7 +201,7 @@ def ignore_command( bot, trigger ):
 
 	save_data( bot )
 
-@willie.module.commands( "twitter:unignore" )
+@sopel.module.commands( "twitter:unignore" )
 def unignore_command( bot, trigger ):
 	data = bot.memory["twitter_data"]
 
@@ -215,7 +215,7 @@ def unignore_command( bot, trigger ):
 
 	save_data( bot )
 
-@willie.module.commands( "twitter:ignorelist" )
+@sopel.module.commands( "twitter:ignorelist" )
 def ignorelist_command( bot, trigger ):
 	data = bot.memory["twitter_data"]
 
